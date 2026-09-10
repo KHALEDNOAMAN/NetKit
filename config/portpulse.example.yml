@@ -1,0 +1,33 @@
+# PortPulse Service Monitoring Configuration
+services:
+  - name: Web Server
+    type: http
+    url: http://localhost:80
+    expected_status: 200
+    timeout: 5
+
+  - name: API Server
+    type: http
+    url: http://localhost:8000/health
+    expected_status: 200
+
+  - name: PostgreSQL
+    type: tcp
+    host: localhost
+    port: 5432
+    timeout: 3
+
+  - name: Redis
+    type: tcp
+    host: localhost
+    port: 6379
+
+  - name: MongoDB
+    type: tcp
+    host: localhost
+    port: 27017
+
+  - name: Google DNS
+    type: tcp
+    host: 8.8.8.8
+    port: 53
