@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetKit Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0a0a0f; color: #e0e0e0; }
+        .header { background: linear-gradient(135deg, #0d1117, #1a1a2e); padding: 20px 30px; border-bottom: 1px solid #1e293b; }
+        .header h1 { font-size: 24px; color: #00d4ff; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; padding: 20px; }
+        .card { background: #111827; border-radius: 12px; padding: 20px; border: 1px solid #1e293b; }
+        .card h2 { color: #00d4ff; margin-bottom: 15px; font-size: 18px; }
+        .stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1e293b; }
+        .stat:last-child { border: none; }
+        .up { color: #22c55e; } .down { color: #ef4444; }
+        .device { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+        .refresh { background: #00d4ff; color: #000; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-left: 15px; }
+        .loading { color: #666; text-align: center; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>NetKit Dashboard <button class="refresh" onclick="loadAll()">Refresh</button></h1>
+    </div>
+    <div class="grid">
+        <div class="card">
+            <h2>WiFi Health</h2>
+            <div id="wifi"><div class="loading">Loading...</div></div>
+        </div>
+        <div class="card">
+            <h2>Network Devices</h2>
+            <div id="devices"><div class="loading">Loading...</div></div>
+        </div>
+        <div class="card">
+            <h2>Service Health</h2>
+            <div id="services"><div class="loading">Loading...</div></div>
+        </div>
+    </div>
+    <script>
+    async function loadWifi() {
+        const r = await fetch('/api/wifi');
+        const d = await r.json();
+        document.getElementById('wifi').innerHTML =
+            '<div class="stat"><span>Signal</span><span>' + d.signal_percent + '%</span></div>' +
+            '<div class="stat"><span>Channel</span><span>' + d.channel + ' (' + d.channel_congestion + ' networks)</span></div>' +
+            '<div class="stat"><span>Gateway</span><span>' + d.gateway_latency_ms + 'ms</span></div>' +
+            '<div class="stat"><span>DNS</span><span>' + d.dns_latency_ms + 'ms</span></div>';
+    }
+    async function loadDevices() {
+        const r = await fetch('/api/devices');
+        const devices = await r.json();
+        document.getElementById('devices').innerHTML = devices.map(d =>
+            '<div class="device"><span>' + (d.is_gateway ? '🌐' : '💻') + '</span><span>' +
+            (d.hostname || d.type) + ' (' + d.ip + ')</span></div>'
+        ).join('');
+    }
+    async function loadServices() {
+        const r = await fetch('/api/services');
+        const services = await r.json();
+        if (!services.length) { document.getElementById('services').innerHTML = '<div class="loading">No services configured</div>'; return; }
+        document.getElementById('services').innerHTML = services.map(s =>
+            '<div class="stat"><span>' + (s.healthy ? '🟢' : '🔴') + ' ' + s.name + '</span>' +
+            '<span>' + (s.healthy ? s.response_ms + 'ms' : 'DOWN') + '</span></div>'
+        ).join('');
+    }
+    function loadAll() { loadWifi(); loadDevices(); loadServices(); }
+    loadAll();
+    setInterval(loadAll, 30000);
+    </script>
+</body>
+</html>
