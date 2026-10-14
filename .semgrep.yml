@@ -1,0 +1,122 @@
+# Local semgrep rules, committed so the scan is reviewable and needs no
+# network. These are the checks that caught the real problems in this
+# portfolio: a hardcoded signing key, a Flask debug console on a public bind,
+# and exceptions discarded with pass.
+rules:
+  - id: sql-string-concat
+    languages: [python]
+    severity: ERROR
+    message: SQL built by string concatenation or f-string. Use a parameterised query.
+    patterns:
+      - pattern-either:
+          - pattern: $CUR.execute(f"...")
+          - pattern: $CUR.execute("..." + $X)
+          - pattern: $CUR.execute("..." % $X)
+          - pattern: $CUR.execute("...".format(...))
+
+  - id: subprocess-shell-true
+    languages: [python]
+    severity: ERROR
+    message: shell=True with a non-literal command is a shell injection sink.
+    pattern-either:
+      - pattern: subprocess.run(..., shell=True, ...)
+      - pattern: subprocess.Popen(..., shell=True, ...)
+      - pattern: subprocess.call(..., shell=True, ...)
+      - pattern: os.system(...)
+
+  - id: broad-except-swallowed
+    languages: [python]
+    severity: WARNING
+    message: Exception caught and discarded. The failure becomes a silent wrong answer.
+    pattern-either:
+      - pattern: |
+          try:
+              ...
+          except Exception:
+              pass
+      - pattern: |
+          try:
+              ...
+          except:
+              pass
+
+  - id: hardcoded-signing-key
+    languages: [python]
+    severity: ERROR
+    message: A signing key or secret assigned to a literal. Read it from the environment.
+    patterns:
+      - pattern-either:
+          - pattern: SECRET_KEY = "..."
+          - pattern: SECRET = "..."
+          - pattern: JWT_SECRET = "..."
+          - pattern: $X.secret_key = "..."
+      - pattern-not: SECRET_KEY = ""
+
+  # First version of this rule flagged every os.getenv with a default, which
+  # meant 10 false positives on one Django settings file: ports, hostnames,
+  # an email backend, and two credentials that correctly default to "".
+  # A default is only dangerous when the NAME is a secret and the VALUE is
+  # non-empty, so both are now required.
+  - id: env-with-insecure-default
+    languages: [python]
+    severity: ERROR
+    message: >
+      A secret read from the environment with a working fallback. A default
+      that works is a value nobody ever sets, so it becomes the production
+      value. Fail closed instead.
+    patterns:
+      - pattern-either:
+          - pattern: os.getenv("$NAME", "$DEFAULT")
+          - pattern: os.environ.get("$NAME", "$DEFAULT")
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: (?i).*(secret|password|passwd|api_?key|apikey|token|private_?key|signing).*
+      - metavariable-regex:
+          metavariable: $DEFAULT
+          regex: .+
+
+  - id: debug-true
+    languages: [python]
+    severity: WARNING
+    message: >
+      Debug mode enabled in source. Flask debug serves the Werkzeug console,
+      which executes arbitrary Python in the browser.
+    pattern-either:
+      - pattern: DEBUG = True
+      - pattern: $APP.run(..., debug=True, ...)
+
+  - id: bind-all-interfaces
+    languages: [python]
+    severity: INFO
+    message: Binding 0.0.0.0 exposes the service on every interface.
+    pattern-either:
+      - pattern: $APP.run(host="0.0.0.0", ...)
+      - pattern: uvicorn.run(..., host="0.0.0.0", ...)
+
+  - id: requests-no-timeout
+    languages: [python]
+    severity: WARNING
+    message: HTTP call with no timeout. One slow peer hangs the process forever.
+    patterns:
+      - pattern-either:
+          - pattern: requests.get(...)
+          - pattern: requests.post(...)
+          - pattern: requests.put(...)
+          - pattern: requests.request(...)
+      - pattern-not: requests.$M(..., timeout=$T, ...)
+
+  - id: assert-for-control-flow
+    languages: [python]
+    severity: WARNING
+    message: assert is stripped by python -O. Do not use it to enforce anything.
+    pattern: assert $X
+    paths:
+      exclude: ["*test*", "*conftest*"]
+
+  - id: verify-false
+    languages: [python]
+    severity: ERROR
+    message: TLS verification disabled.
+    pattern-either:
+      - pattern: requests.$M(..., verify=False, ...)
+      - pattern: ssl._create_unverified_context(...)

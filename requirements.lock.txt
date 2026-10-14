@@ -1,0 +1,82 @@
+# Generated, do not hand edit. Regenerate with:
+#   sed -E 's/[=<>!~].*//' requirements.txt | grep -E '^[A-Za-z]' > u.txt
+#   uv pip compile --python-version 3.11 -o requirements.lock.txt u.txt
+#   pip-audit -r requirements.lock.txt
+anyio==4.15.1
+    # via httpx
+bidict==0.24.1
+    # via python-socketio
+blinker==1.9.0
+    # via
+    #   flask
+    #   flask-socketio
+certifi==2026.7.22
+    # via
+    #   httpcore
+    #   httpx
+click==8.5.0
+    # via
+    #   -r C:/Users/Public/fxwork/NetKit/_u.txt
+    #   flask
+    #   flask-socketio
+flask==3.1.3
+    # via
+    #   -r C:/Users/Public/fxwork/NetKit/_u.txt
+    #   flask-socketio
+flask-socketio==5.7.0
+    # via -r C:/Users/Public/fxwork/NetKit/_u.txt
+h11==0.16.0
+    # via
+    #   httpcore
+    #   wsproto
+httpcore==1.0.9
+    # via httpx
+httpx==0.28.1
+    # via -r C:/Users/Public/fxwork/NetKit/_u.txt
+idna==3.20
+    # via
+    #   anyio
+    #   httpx
+itsdangerous==2.2.0
+    # via flask
+jinja2==3.1.6
+    # via
+    #   flask
+    #   flask-socketio
+markdown-it-py==4.2.0
+    # via rich
+markupsafe==3.0.4
+    # via
+    #   flask
+    #   jinja2
+    #   werkzeug
+mdurl==0.1.2
+    # via markdown-it-py
+netifaces==0.11.0
+    # via -r C:/Users/Public/fxwork/NetKit/_u.txt
+psutil==7.2.2
+    # via -r C:/Users/Public/fxwork/NetKit/_u.txt
+pygments==2.21.0
+    # via rich
+python-engineio==4.14.0
+    # via python-socketio
+python-socketio==5.17.0
+    # via flask-socketio
+pyyaml==6.0.3
+    # via -r C:/Users/Public/fxwork/NetKit/_u.txt
+rich==15.0.0
+    # via -r C:/Users/Public/fxwork/NetKit/_u.txt
+scapy==2.8.0
+    # via -r C:/Users/Public/fxwork/NetKit/_u.txt
+simple-websocket==1.1.0
+    # via python-engineio
+typing-extensions==4.16.0
+    # via
+    #   anyio
+    #   bidict
+werkzeug==3.1.9
+    # via
+    #   flask
+    #   flask-socketio
+wsproto==1.3.2
+    # via simple-websocket

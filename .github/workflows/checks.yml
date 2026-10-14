@@ -34,6 +34,25 @@ jobs:
             uvx pip-audit -r /tmp/resolved.txt
           fi
 
+      # Local semgrep rules, committed so the scan is reviewable and needs no
+      # network. These are the checks that caught the real problems: a
+      # hardcoded signing key, Flask debug on a public bind, and exceptions
+      # discarded with pass.
+      - name: semgrep
+        run: uvx semgrep scan --config=.semgrep.yml --error --metrics=off --quiet .
+
+      # requirements.txt states minimum safe versions. This is what actually
+      # gets installed, so this is what gets audited.
+      - name: lock is current
+        run: |
+          if [ -f requirements.txt ] && [ -f requirements.lock.txt ]; then
+            sed -E 's/[=<>!~].*//' requirements.txt | grep -E '^[A-Za-z]' > /tmp/u.txt
+            uv pip compile -q --no-header --python-version 3.11 -o /tmp/fresh.txt /tmp/u.txt
+            if ! diff -q <(grep -v '^#' requirements.lock.txt) <(grep -v '^#' /tmp/fresh.txt) >/dev/null; then
+              echo "::warning::requirements.lock.txt is behind what the resolver now picks. Regenerate it."
+            fi
+          fi
+
       - name: tests
         run: |
           if ls tests/test_*.py >/dev/null 2>&1; then

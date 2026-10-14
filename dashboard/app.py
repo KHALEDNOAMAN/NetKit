@@ -1,5 +1,6 @@
 """NetKit Web Dashboard - Real-time network monitoring."""
 import json
+import os
 from flask import Flask, render_template, jsonify
 from netkit.wifi_doctor import WifiDoctor
 from netkit.network_mapper import NetworkMapper
@@ -48,4 +49,14 @@ def api_services():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # Flask debug serves the Werkzeug console, which executes arbitrary
+    # Python in the browser. On 0.0.0.0 that is remote code execution for
+    # anyone who can reach the port, so neither is a default here.
+    host = os.environ.get("NETKIT_HOST", "127.0.0.1")
+    port = int(os.environ.get("NETKIT_PORT", "5000"))
+    debug = os.environ.get("NETKIT_DEBUG", "").lower() in ("1", "true", "yes")
+    if debug and host != "127.0.0.1":
+        raise SystemExit(
+            "refusing to run the debug console on a non loopback address"
+        )
+    app.run(host=host, port=port, debug=debug)
