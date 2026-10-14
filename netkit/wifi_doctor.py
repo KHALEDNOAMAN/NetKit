@@ -1,4 +1,5 @@
 """WiFi Doctor - Diagnose WiFi issues instantly."""
+import logging
 import socket
 import time
 import subprocess
@@ -14,6 +15,7 @@ from rich import box
 from netkit.utils import get_local_ip, get_gateway, ping
 
 console = Console()
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -109,8 +111,11 @@ class WifiDoctor:
                 sock.close()
                 if latency < best:
                     best = latency
-            except Exception:
+            except OSError as exc:
+                log.debug("dns probe to %s failed: %s", dns, exc)
                 continue
+        if best == 999.0:
+            log.warning("every DNS probe failed, latency is not measured")
         return round(best, 1)
 
     def _scan_networks(self) -> list:
@@ -161,8 +166,12 @@ class WifiDoctor:
                             current.signal_strength = max(0, min(100, 2 * (dbm + 100)))
                         except (ValueError, IndexError):
                             pass
-        except Exception:
-            pass
+        except FileNotFoundError:
+            log.warning("no wifi scan tool found for %s, cannot scan", system)
+        except subprocess.TimeoutExpired:
+            log.warning("wifi scan timed out after 10s")
+        except OSError as exc:
+            log.warning("wifi scan failed: %s", exc)
         return networks
 
     def _estimate_signal(self) -> int:
@@ -184,8 +193,9 @@ class WifiDoctor:
                         parts = lines[2].split()
                         quality = float(parts[2].rstrip("."))
                         return int((quality / 70) * 100)
-        except Exception:
-            pass
+        except (OSError, ValueError, IndexError) as exc:
+            log.warning("could not read signal strength (%s), "
+                        "falling back to 75 percent", exc)
         return 75  # Default estimate
 
     def print_report(self, report: dict):

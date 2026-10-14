@@ -1,9 +1,15 @@
-click==8.1.7
-rich==13.7.0
-scapy==2.5.0
-psutil==5.9.7
-httpx==0.26.0
-netifaces==0.11.0
-flask==3.0.0
-flask-socketio==5.3.6
-pyyaml==6.0.1
+# Minimum safe versions, verified with pip-audit against the fully
+# resolved dependency set on 14 Oct 2026. requirements.lock.txt pins
+# the exact resolved set. Regenerate both with:
+#   sed -E 's/[=<>!~].*//' requirements.txt | grep -E '^[A-Za-z]' > u.txt
+#   uv pip compile -o requirements.lock.txt u.txt
+#   pip-audit -r requirements.lock.txt
+click>=8.5.0
+rich>=15.0.0
+scapy>=2.8.0
+psutil>=7.2.2
+httpx>=0.28.1
+netifaces>=0.11.0
+flask>=3.1.3
+flask-socketio>=5.7.0
+pyyaml>=6.0.3

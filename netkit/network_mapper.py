@@ -1,3 +1,4 @@
+import logging
 """Network Mapper - Discover all devices on your network."""
 import socket
 import subprocess
@@ -10,6 +11,8 @@ from rich.table import Table
 from rich import box
 
 from netkit.utils import get_local_ip, get_gateway, get_subnet, is_port_open
+
+log = logging.getLogger(__name__)
 
 console = Console()
 
@@ -94,8 +97,12 @@ class NetworkMapper:
                                     if m.count(":") == 5:
                                         table[ip] = m
                                         break
-        except Exception:
-            pass
+        except FileNotFoundError:
+            log.warning("arp command not found, neighbour table is empty")
+        except subprocess.TimeoutExpired:
+            log.warning("arp timed out after 10s")
+        except OSError as exc:
+            log.warning("arp failed: %s", exc)
 
         if self.gateway not in table:
             table[self.gateway] = "00:00:00:00:00:00"

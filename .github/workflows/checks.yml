@@ -1,0 +1,44 @@
+name: checks
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'   # Monday, so a new CVE surfaces within a week
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.12'
+
+      # Every file must at least parse. This repo shipped a syntax error.
+      - name: compile
+        run: python -m compileall -q .
+
+      - name: lint
+        run: uvx ruff check --output-format github .
+
+      # Audit what the resolver actually picks, not what requirements.txt
+      # asks for. Pinning fastapi to a patched version still resolved a
+      # vulnerable starlette.
+      - name: audit dependencies
+        run: |
+          if [ -f requirements.txt ]; then
+            sed -E 's/[=<>!~].*//' requirements.txt | grep -E '^[A-Za-z]' > /tmp/u.txt
+            uv pip compile -q --no-header -o /tmp/resolved.txt /tmp/u.txt
+            uvx pip-audit -r /tmp/resolved.txt
+          fi
+
+      - name: tests
+        run: |
+          if ls tests/test_*.py >/dev/null 2>&1; then
+            uv venv && uv pip install -q -r requirements.txt pytest
+            uv run pytest -q
+          else
+            echo "no tests yet"
+          fi
